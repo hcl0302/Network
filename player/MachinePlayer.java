@@ -7,15 +7,23 @@ package player;
  *  made by both players.  Can select a move for itself.
  */
 public class MachinePlayer extends Player {
+  
+  private int color;
+  private int searchDepth;
+  private Board currentBoard;
 
   // Creates a machine player with the given color.  Color is either 0 (black)
   // or 1 (white).  (White has the first move.)
   public MachinePlayer(int color) {
+    this.color = color;
+    currentBoard = new Board();
   }
 
   // Creates a machine player with the given color and search depth.  Color is
   // either 0 (black) or 1 (white).  (White has the first move.)
   public MachinePlayer(int color, int searchDepth) {
+    this(color);
+    this.searchDepth = searchDepth;
   }
 
   // Returns a new move by "this" player.  Internally records the move (updates
@@ -39,6 +47,17 @@ public class MachinePlayer extends Player {
   // player to solve.
   public boolean forceMove(Move m) {
     return false;
+  }
+  
+  // generating a list of all valid moves
+  private Move[] movesGenerator(int color, Board board) {
+    Move[] moves = {new Move()};
+    return moves;
+  }
+  
+  //perform minimax tree search
+  private Move treeSearch(int color, Board board) {
+    return new Move();
   }
 
 }
