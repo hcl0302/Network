@@ -5,7 +5,7 @@ import java.util.ListIterator;
 
 public class ConnectedChip extends Chip {
   
-  private LinkedList<Chip> connectedChips;
+  protected LinkedList<Chip> connectedChips;
   
   public ConnectedChip(int x, int y, int color) {
     super(x, y, color);

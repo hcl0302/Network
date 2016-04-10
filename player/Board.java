@@ -1,14 +1,15 @@
 package player;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.ListIterator;
 
 public class Board {
   
   public final int SIZE = 8;
   
-  public final int BLACK = 0;
-  public final int WHITE = 1;
+  public static final int BLACK = 0;
+  public static final int WHITE = 1;
   public final int EMPTY = -1;
   public final int DEAD = -2;
   
@@ -72,13 +73,16 @@ public class Board {
   
   // check whether the move is legal for a certain player
   public boolean isValidMove(int color, Move m) {
+    if (m == null) {
+      return false;
+    }
     int oppositeColor = color==BLACK? WHITE:BLACK;
     switch(m.moveKind) {
     case Move.ADD:
-      return isEmpty(m.x1, m.y1) && !isGoalArea(m.x1, m.y1, oppositeColor);
+      return isEmpty(m.x1, m.y1) && isGoalArea(m.x1, m.y1, oppositeColor)==0;
     case Move.STEP:
       if (board[m.x2][m.y2] == color && isEmpty(m.x1, m.y1) 
-      && !isGoalArea(m.x1, m.y1, oppositeColor)) {
+      && isGoalArea(m.x1, m.y1, oppositeColor)==0) {
         return true;
       } else {
         return false;
@@ -106,14 +110,17 @@ public class Board {
     }
   }
   
-//indicate whether a position on the board is in goal area
-  public boolean isGoalArea(int x, int y, int color) {
+  //indicate whether a position on the board is in goal area
+  //return 0 if not in goal area
+  //return 1 if in up or left goal area
+  //return -1 if in down or right goal area
+  public int isGoalArea(int x, int y, int color) {
     if (color == BLACK && (y==0 || y==SIZE-1) && x!=0 && x!=SIZE-1) {
-      return true;
+      return y==0? 1:-1;
     } else if (color == WHITE && (x==0 || x==SIZE-1) && y!=0 && y!=SIZE-1) {
-      return true;
+      return x==0? 1:-1;
     } else {
-      return false;
+      return 0;
     }
   }
   
@@ -186,7 +193,7 @@ public class Board {
         otherChip.addConnectedChip(chip);
       }
     }
-    if (isGoalArea(chip.x, chip.y, chip.color)) {
+    if (isGoalArea(chip.x, chip.y, chip.color)!=0) {
       chips.addFirst(chip);;
     } else {
       chips.add(chip);
@@ -206,60 +213,54 @@ public class Board {
     }
   }
   
-//  //finding the chips (of the same color) that form connections with a chip
-//  public List<Chip> findConnectedChips(Chip chip) {
-//    List<Chip> connectedChips = new LinkedList<Chip>();
-//    boolean[] directions = {false, false, false, false,
-//        false, false, false, false};
-//    int distance = 1;
-//    while (!findAllDirections(directions)) {
-//      List<Chip> neighbours = getNeighbourChips(chip, distance, directions);
-//      connectedChips.addAll(neighbours);
-//      distance++;
-//    }
-//    return connectedChips;
-//  }
-  
-//  private boolean findAllDirections(boolean[] d) {
-//    for (int i = 0; i < d.length; i++) {
-//      if (!d[i]) {
-//        return false;
-//      }
-//    }
-//    return true;
-//  }
-//  
-//  private List<Chip> getNeighbourChips(Chip chip, int distance, boolean[] directions) {
-//    int x0 = chip.x, y0 = chip.y;
-//    int[] x = {x0-distance, x0-distance, x0, x0+distance, x0+distance, x0+distance, x0, x0-distance};
-//    int[] y = {y0, y0+distance, y0+distance, y0+distance, y0, y0-distance, y0-distance, y0-distance};
-//    List<Chip> neighbours = new LinkedList<>();
-//    for (int i = 0; i < directions.length; i++) {
-//      if (!directions[i]) {
-//        if (isDeadArea(x[i], y[i])) {
-//          directions[i] = true;
-//        } else if (board[x[i]][y[i]] == chip.color) {
-//          neighbours.add(new Chip(x[i], y[i], chip.color));
-//          directions[i] = true;
-//        } else if (board[x[i]][y[i]] != EMPTY) {
-//          directions[i] = true;
-//        }
-//      }
-//    }
-//    return neighbours;
-//  }
-  
   //form a network
-  public boolean formNetwork(int color) {
+  public boolean success(int color) {
+    LinkedList<ConnectedChip> chips = color==BLACK?blackChips:whiteChips;
+    ListIterator<ConnectedChip> ite = chips.listIterator();
+    while (ite.hasNext()) {
+      ConnectedChip c = ite.next();
+      if (isGoalArea(c.x, c.y, color) == 1) {
+        if (formNetwork(c, new LinkedList<ConnectedChip>())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  //the network starts from a up or left goal area and ends in the other goal area
+  //return true if a valid network can be formed, otherwise false
+  private boolean formNetwork(ConnectedChip start, LinkedList<ConnectedChip> network) {
+    LinkedList<Chip> neighbours = start.connectedChips;
+    ListIterator<Chip> ite = neighbours.listIterator();
+    while (ite.hasNext()) {
+      ConnectedChip c = (ConnectedChip)ite.next();
+      if (isGoalArea(c.x, c.y, c.color) == -1) {
+        network.add(c);
+        if (isValidNetwork(network)) {
+          return true;
+        } else {
+          network.removeLast();
+        }
+      } else if (isGoalArea(c.x, c.y, c.color)!=1 && !network.contains(c)) {
+        //only head and end of the network can be in the goal area
+        //not allowed to pass a chip more than once
+        network.add(c);
+        if (formNetwork(c, network)) {
+          return true;
+        }
+        network.removeLast();
+      }
+    }
     return false;
   }
   
   //check whether a network is valid
-  private boolean isValidNetwork(LinkedList<Chip> network) {
-    if (network.size() < 3) {
-      return true;
+  private boolean isValidNetwork(LinkedList<ConnectedChip> network) {
+    if (network.size() < 6) {
+      return false;
     }
-    ListIterator<Chip> ite = network.listIterator();
+    ListIterator<ConnectedChip> ite = network.listIterator();
     int slope1, slope2;
     Chip c1 = ite.next();
     Chip c2 = ite.next();
@@ -283,6 +284,38 @@ public class Board {
       c2 = c3;
     }
     return true;
+  }
+  
+  
+  // generating a list of all valid moves
+  public List<Move> movesGenerator(int color) {
+    LinkedList<ConnectedChip> chips = color==BLACK? blackChips:whiteChips;
+    int opposite = color==BLACK? WHITE:BLACK;
+    List<Move> moves = new LinkedList<>();
+    if (chips.size() < 10) {
+      //move kind is add
+      for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+          if (this.board[i][j]==EMPTY && isGoalArea(i,j,opposite)==0) {
+            moves.add(new Move(i, j));
+          }
+        }
+      }
+    } else {
+      //move kind is step
+      for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+          if (this.board[i][j]==EMPTY && isGoalArea(i,j,opposite)==0) {
+            ListIterator<ConnectedChip> ite = chips.listIterator();
+            while (ite.hasNext()) {
+              Chip c = ite.next();
+              moves.add(new Move(i, j, c.x, c.y));
+            }
+          }
+        }
+      }
+    }
+    return moves;
   }
   
   public void print() {
