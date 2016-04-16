@@ -21,10 +21,8 @@ public class ConnectedChip extends Chip {
   }
   
   public int neighboursNum() {
-    ListIterator<Chip> ite = connectedChips.listIterator();
     int count = 0;
-    while (ite.hasNext()) {
-      Chip c = ite.next();
+    for (Chip c : connectedChips) {
       if (Math.abs(c.x-this.x) <= 1 && Math.abs(c.y-this.y) <= 1) {
         count ++;
       }
@@ -38,7 +36,23 @@ public class ConnectedChip extends Chip {
   }
   
   public boolean removeConnectedChip(Chip chip) {
-    return this.connectedChips.remove(chip);
+    ListIterator<Chip> ite = connectedChips.listIterator();
+    while (ite.hasNext()) {
+      Chip c = ite.next();
+      if (c.equals(chip)) {
+        ite.remove();
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  public void print() {
+    System.out.print("(" + x + ", " + y +") connections: ");
+    for (Chip c : connectedChips) {
+      System.out.print(c.x + "," + c.y + ";");
+    }
+    System.out.println();
   }
 
 }

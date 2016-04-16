@@ -21,9 +21,11 @@ public class MachinePlayer extends Player {
   // Creates a machine player with the given color.  Color is either 0 (black)
   // or 1 (white).  (White has the first move.)
   public MachinePlayer(int color) {
+    System.out.println("A new Machine player is created");
     this.machineColor = color;
     this.humanColor = color==Board.BLACK? Board.WHITE:Board.BLACK;
     currentBoard = new Board();
+    this.searchDepth = 1;
   }
 
   // Creates a machine player with the given color and search depth.  Color is
@@ -31,29 +33,35 @@ public class MachinePlayer extends Player {
   public MachinePlayer(int color, int searchDepth) {
     this(color);
     this.searchDepth = searchDepth;
+    System.out.println("Search Depth: "+searchDepth);
   }
 
   // Returns a new move by "this" player.  Internally records the move (updates
   // the internal game board) as a move by "this" player.
   public Move chooseMove() {
+    System.out.println("Call chooseMove");
     List<Move> moves = this.currentBoard.movesGenerator(machineColor);
     ListIterator<Move> ite = moves.listIterator();
     int bestScore = HUMAN_WIN;
     Move bestMove = null;
+    currentBoard.print();
     while (ite.hasNext()) {
       Move m = ite.next();
       currentBoard.move(m, machineColor);
+      //currentBoard.print();
       int score;
       if (this.searchDepth > 1) {
         score = treeSearch(humanColor, currentBoard, m, 2, bestScore);
       } else {
         score = boardEvaluation(currentBoard);
       }
+      System.out.println("Score: " + score);
       if (score > bestScore) {
         bestMove = m;
         bestScore = score;
       }
       currentBoard.retractMove(m);
+      //currentBoard.print();
     }
     if (forceMove(bestMove)) {
       return bestMove;
@@ -68,6 +76,7 @@ public class MachinePlayer extends Player {
   // illegal, returns false without modifying the internal state of "this"
   // player.  This method allows your opponents to inform you of their moves.
   public boolean opponentMove(Move m) {
+    System.out.println("Call opponent Move");
     if (this.currentBoard.isValidMove(humanColor, m)) {
       this.currentBoard.move(m, humanColor);
       return true;
@@ -81,6 +90,7 @@ public class MachinePlayer extends Player {
   // player.  This method is used to help set up "Network problems" for your
   // player to solve.
   public boolean forceMove(Move m) {
+    System.out.println("Call forceMove");
     if (this.currentBoard.isValidMove(this.machineColor, m)) {
       this.currentBoard.move(m, this.machineColor);
       return true;
@@ -92,6 +102,7 @@ public class MachinePlayer extends Player {
   //return MACHINE_WIN if the Machine player wins, HUMAN_WIN if losing
   //return difference of connected chip numbers if a draw
   public int boardEvaluation(Board board) {
+    System.out.println("Call boardEvaluation");
     if (board.success(machineColor)) {
       return MACHINE_WIN;
     } else if (board.success(humanColor)) {
@@ -104,6 +115,7 @@ public class MachinePlayer extends Player {
   
   //perform minimax tree search
   private int treeSearch(int color, Board board, Move move, int depth, int oppBest) {
+    System.out.println("Call treeSearch");
     int opponentColor = color==machineColor? humanColor:machineColor;
     int bestScore = color==machineColor? HUMAN_WIN:MACHINE_WIN;
     List<Move> moves = board.movesGenerator(color);

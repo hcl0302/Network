@@ -22,6 +22,7 @@ public class Board {
   private LinkedList<ConnectedChip> whiteChips;
   
   public Board() {
+    System.out.println("New board created");
     board = new int[SIZE][SIZE];
     for (int i = 0; i < SIZE; i++) {
       for (int j = 0; j < SIZE; j++) {
@@ -58,7 +59,7 @@ public class Board {
   public void retractMove(Move m) {
     switch(m.moveKind) {
     case Move.ADD:
-      removeChip(new Chip(m.x2, m.y2, board[m.x1][m.y1]));
+      removeChip(new Chip(m.x1, m.y1, board[m.x1][m.y1]));
       board[m.x1][m.y1] = EMPTY;
       break;
     case Move.STEP:
@@ -66,7 +67,7 @@ public class Board {
       board[m.x2][m.y2] = color;
       addChip(new ConnectedChip(m.x2, m.y2, color));
       board[m.x1][m.y1] = EMPTY;
-      removeChip(new Chip(m.x2, m.y2, color));
+      removeChip(new Chip(m.x1, m.y1, color));
       break;
     }
   }
@@ -127,10 +128,8 @@ public class Board {
   //return the number of connected chips for a color
   public int connectedChipsNum(int color) {
     LinkedList<ConnectedChip> chips = (color==BLACK? this.blackChips:this.whiteChips);
-    ListIterator<ConnectedChip> ite = chips.listIterator();
     int count = 0;
-    while (ite.hasNext()) {
-      ConnectedChip c = ite.next();
+    for (ConnectedChip c : chips) {
       count += c.connectionsNum();
     }
     return count;
@@ -139,10 +138,8 @@ public class Board {
   //find the number of adjacent chips
   public int findAjacentChips(int x, int y, int color) {
     LinkedList<ConnectedChip> chips = (color==BLACK? this.blackChips:this.whiteChips);
-    ListIterator<ConnectedChip> ite = chips.listIterator();
     int count = 0;
-    while (ite.hasNext()) {
-      ConnectedChip c = ite.next();
+    for (ConnectedChip c : chips) {
       if (Math.abs(c.x-x) <= 1 && Math.abs(c.y-y) <= 1) {
         count = count + 1 + c.neighboursNum();
       }
@@ -185,9 +182,7 @@ public class Board {
   
   public void addChip(ConnectedChip chip) {
     LinkedList<ConnectedChip> chips = (chip.color == BLACK? this.blackChips:this.whiteChips);
-    ListIterator<ConnectedChip> ite = chips.listIterator();
-    while (ite.hasNext()) {
-      ConnectedChip otherChip = ite.next();
+    for  (ConnectedChip otherChip : chips) {
       if (isConnectedChips(chip, otherChip)) {
         chip.addConnectedChip(otherChip);
         otherChip.addConnectedChip(chip);
@@ -202,23 +197,25 @@ public class Board {
   
   public void removeChip(Chip chip) {
     LinkedList<ConnectedChip> chips = (chip.color == BLACK? this.blackChips:this.whiteChips);
+    System.out.println("removeChip: ");
     ListIterator<ConnectedChip> ite = chips.listIterator();
     while (ite.hasNext()) {
       ConnectedChip c = ite.next();
+      //c.print();
       if (c.equals(chip)) {
-        chips.remove(c);
+        ite.remove();
+        //chips.remove(c);
       } else {
         c.removeConnectedChip(chip);
       }
+      c.print();
     }
   }
   
   //form a network
   public boolean success(int color) {
     LinkedList<ConnectedChip> chips = color==BLACK?blackChips:whiteChips;
-    ListIterator<ConnectedChip> ite = chips.listIterator();
-    while (ite.hasNext()) {
-      ConnectedChip c = ite.next();
+    for (ConnectedChip c : chips) {
       if (isGoalArea(c.x, c.y, color) == 1) {
         if (formNetwork(c, new LinkedList<ConnectedChip>())) {
           return true;
@@ -232,11 +229,9 @@ public class Board {
   //return true if a valid network can be formed, otherwise false
   private boolean formNetwork(ConnectedChip start, LinkedList<ConnectedChip> network) {
     LinkedList<Chip> neighbours = start.connectedChips;
-    ListIterator<Chip> ite = neighbours.listIterator();
-    while (ite.hasNext()) {
-      ConnectedChip c = (ConnectedChip)ite.next();
+    for (Chip c : neighbours) {
       if (isGoalArea(c.x, c.y, c.color) == -1) {
-        network.add(c);
+        network.add((ConnectedChip) c);
         if (isValidNetwork(network)) {
           return true;
         } else {
@@ -245,8 +240,8 @@ public class Board {
       } else if (isGoalArea(c.x, c.y, c.color)!=1 && !network.contains(c)) {
         //only head and end of the network can be in the goal area
         //not allowed to pass a chip more than once
-        network.add(c);
-        if (formNetwork(c, network)) {
+        network.add((ConnectedChip) c);
+        if (formNetwork((ConnectedChip) c, network)) {
           return true;
         }
         network.removeLast();
@@ -296,7 +291,7 @@ public class Board {
       //move kind is add
       for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
-          if (this.board[i][j]==EMPTY && isGoalArea(i,j,opposite)==0) {
+          if (this.board[i][j]==EMPTY && isGoalArea(i,j,opposite)==0 && findAjacentChips(i, j, color)<2) {
             moves.add(new Move(i, j));
           }
         }
@@ -305,10 +300,8 @@ public class Board {
       //move kind is step
       for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
-          if (this.board[i][j]==EMPTY && isGoalArea(i,j,opposite)==0) {
-            ListIterator<ConnectedChip> ite = chips.listIterator();
-            while (ite.hasNext()) {
-              Chip c = ite.next();
+          if (this.board[i][j]==EMPTY && isGoalArea(i,j,opposite)==0 && findAjacentChips(i, j, color)<2) {
+            for (Chip c : chips) {
               moves.add(new Move(i, j, c.x, c.y));
             }
           }
@@ -329,10 +322,18 @@ public class Board {
           System.out.print("O");
           break;
         default:
-          System.out.print(" ");
+          System.out.print(".");
         }
       }
       System.out.println();
+    }
+    System.out.println("Black Chips: ");
+    for (ConnectedChip c : this.blackChips) {
+      c.print();
+    }
+    System.out.println("White Chips: ");
+    for (ConnectedChip c : this.whiteChips) {
+      c.print();
     }
   }
 }
