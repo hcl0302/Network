@@ -17,15 +17,15 @@ public class MachinePlayer extends Player {
   
   public final int MACHINE_WIN = 9999;
   public final int HUMAN_WIN = -9999;
+  public final int SEARCHDEPTH = 5;
 
   // Creates a machine player with the given color.  Color is either 0 (black)
   // or 1 (white).  (White has the first move.)
   public MachinePlayer(int color) {
-    System.out.println("A new Machine player is created");
     this.machineColor = color;
     this.humanColor = color==Board.BLACK? Board.WHITE:Board.BLACK;
     currentBoard = new Board();
-    this.searchDepth = 1;
+    this.searchDepth = SEARCHDEPTH;
   }
 
   // Creates a machine player with the given color and search depth.  Color is
@@ -33,13 +33,11 @@ public class MachinePlayer extends Player {
   public MachinePlayer(int color, int searchDepth) {
     this(color);
     this.searchDepth = searchDepth;
-    System.out.println("Search Depth: "+searchDepth);
   }
 
   // Returns a new move by "this" player.  Internally records the move (updates
   // the internal game board) as a move by "this" player.
   public Move chooseMove() {
-    System.out.println("Call chooseMove");
     List<Move> moves = this.currentBoard.movesGenerator(machineColor);
     ListIterator<Move> ite = moves.listIterator();
     int bestScore = HUMAN_WIN;
@@ -47,15 +45,16 @@ public class MachinePlayer extends Player {
     currentBoard.print();
     while (ite.hasNext()) {
       Move m = ite.next();
-      currentBoard.move(m, machineColor);
-      //currentBoard.print();
-      int score;
-      if (this.searchDepth > 1) {
-        score = treeSearch(humanColor, currentBoard, m, 2, bestScore);
-      } else {
-        score = boardEvaluation(currentBoard);
+      if (!currentBoard.move(m, machineColor)) {
+        currentBoard.retractMove(m);
+        continue;
       }
-      System.out.println("Score: " + score);
+      //currentBoard.print();
+      int score = boardEvaluation(currentBoard);
+      if (score!=MACHINE_WIN && score!=HUMAN_WIN && this.searchDepth > 1) {
+        score = treeSearch(humanColor, currentBoard, m, 2, bestScore);
+      }
+      //System.out.println("Score: " + score);
       if (score > bestScore) {
         bestMove = m;
         bestScore = score;
@@ -76,7 +75,6 @@ public class MachinePlayer extends Player {
   // illegal, returns false without modifying the internal state of "this"
   // player.  This method allows your opponents to inform you of their moves.
   public boolean opponentMove(Move m) {
-    System.out.println("Call opponent Move");
     if (this.currentBoard.isValidMove(humanColor, m)) {
       this.currentBoard.move(m, humanColor);
       return true;
@@ -90,7 +88,6 @@ public class MachinePlayer extends Player {
   // player.  This method is used to help set up "Network problems" for your
   // player to solve.
   public boolean forceMove(Move m) {
-    System.out.println("Call forceMove");
     if (this.currentBoard.isValidMove(this.machineColor, m)) {
       this.currentBoard.move(m, this.machineColor);
       return true;
@@ -102,7 +99,6 @@ public class MachinePlayer extends Player {
   //return MACHINE_WIN if the Machine player wins, HUMAN_WIN if losing
   //return difference of connected chip numbers if a draw
   public int boardEvaluation(Board board) {
-    System.out.println("Call boardEvaluation");
     if (board.success(machineColor)) {
       return MACHINE_WIN;
     } else if (board.success(humanColor)) {
@@ -114,29 +110,38 @@ public class MachinePlayer extends Player {
   }
   
   //perform minimax tree search
-  private int treeSearch(int color, Board board, Move move, int depth, int oppBest) {
-    System.out.println("Call treeSearch");
+  private int treeSearch(int color, Board board, Move move, int depth, int opponentBestScore) {
     int opponentColor = color==machineColor? humanColor:machineColor;
     int bestScore = color==machineColor? HUMAN_WIN:MACHINE_WIN;
     List<Move> moves = board.movesGenerator(color);
     ListIterator<Move> ite = moves.listIterator();
     while (ite.hasNext()) {
       Move m = ite.next();
-      board.move(m, color);
-      int score;
-      if (this.searchDepth > depth) {
-        score = treeSearch(opponentColor, board, m, 2, bestScore);
-      } else {
-        score = boardEvaluation(board);
+      if (!board.move(m, color)) {
+        board.retractMove(m);
+        continue;
       }
+      int score = boardEvaluation(board);
+      if (score == MACHINE_WIN) {
+        //assign a higher score to a win in smaller moves
+        score -= depth;
+      } else if (score == HUMAN_WIN) {
+        score += depth;
+      } else if (this.searchDepth > depth) {
+        //no one wins now, search deeper
+        score = treeSearch(opponentColor, board, m, depth+1, bestScore);
+      }
+      //System.out.println("Tree search Score: " + score);
       if (color == machineColor && score > bestScore) {
         bestScore = score;
-        if (bestScore >= oppBest) {
+        if (bestScore >= opponentBestScore) {
+          board.retractMove(m);
           break;
         }
       } else if (color == humanColor && score < bestScore) {
         bestScore = score;
-        if (bestScore <= oppBest) {
+        if (bestScore <= opponentBestScore) {
+          board.retractMove(m);
           break;
         }
       }

@@ -14,4 +14,9 @@ public class Chip {
   public boolean equals(Chip chip) {
     return this.x == chip.x && this.y == chip.y;
   }
+  
+  public String toString() {
+    return "("+x+","+y+")";
+  }
 }
+
