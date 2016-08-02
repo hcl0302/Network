@@ -21,6 +21,7 @@ public class Board {
   //be in the front of the list
   private LinkedList<ConnectedChip> blackChips;
   private LinkedList<ConnectedChip> whiteChips;
+  private LinkedList<ConnectedChip> allChips;
   
   //TODO: save all adds and removes of chips in it
   protected Stack<LinkedList<MoveEffect>> moveEffects;
@@ -38,33 +39,36 @@ public class Board {
     board[SIZE - 1][SIZE -1] = DEAD;
     blackChips = new LinkedList<>();
     whiteChips = new LinkedList<>();
+    allChips = new LinkedList<>();
     moveEffects = new Stack<>();
   }
   
   //Execute a move on the board
   //return false if a group of three chips is formed after the move
   public boolean move(Move m, int color) {
-    int opponentColor = color==BLACK? WHITE:BLACK;
+    ConnectedChip addedChip = null;
     switch(m.moveKind) {
       case Move.ADD:
         board[m.x1][m.y1] = color;
-        if (!addChip(new ConnectedChip(m.x1, m.y1, color))) {
+        addedChip = new ConnectedChip(m.x1, m.y1, color);
+        if (!addChip(addedChip)) {
           this.moveEffects.push(null);
           return false;
         }
         //After an add-kind move, some connections may be broken
-        checkConnections(opponentColor);
+        checkConnections(addedChip);
         break;
       case Move.STEP:
         board[m.x2][m.y2] = EMPTY;
         removeChip(new Chip(m.x2, m.y2, color));
         board[m.x1][m.y1] = color;
-        if (!addChip(new ConnectedChip(m.x1, m.y1, color))) {
+        addedChip = new ConnectedChip(m.x1, m.y1, color);
+        if (!addChip(addedChip)) {
           this.moveEffects.push(null);
           return false;
         }
         //After a step-kind move, some connections may be broken and some may be added
-        updateConnections(opponentColor);
+        updateConnections(addedChip);
         break;
       case Move.QUIT:
         break;
@@ -165,6 +169,7 @@ public class Board {
 //    return neighbours;
   }
   
+  //check whether two chips are connected
   public boolean isConnectedChips(Chip c1, Chip c2) {
     if (c1.x == c2.x) {
       int y = Math.min(c1.y, c2.y) + 1;
@@ -198,13 +203,30 @@ public class Board {
     return false;
   }
   
+  //Check whether a connection between chip1 and chip2 is broken after a new chip3 is added.
+  private boolean connectionBroken(Chip c1, Chip c2, Chip c3) {
+    if (c1.x == c2.x) {
+      return c3.x==c1.x && c3.y>Math.min(c1.y, c2.y) && c3.y<Math.max(c1.y, c2.y);
+    } else if (c1.y == c2.y) {
+      return c3.y==c1.y && c3.x>Math.min(c1.x, c2.x) && c3.x<Math.max(c1.x, c2.x);
+    } else if (c3.x == c1.x || c3.x == c2.x) {
+      return false;
+    } else {
+      return (c3.y-c1.y)/(c3.x-c1.x) == (c2.y-c1.y)/(c2.x-c1.x) 
+          && (c3.y-c2.y)/(c3.x-c2.x) == (c1.y-c2.y)/(c1.x-c2.x);
+    }
+  }
+  
   //After an add-kind move, some connections may be broken
-  private void checkConnections(int color) {
-    LinkedList<ConnectedChip> chips = color==BLACK?blackChips:whiteChips;
+  //Fix bug: both black chips and white chips can be affected
+  private void checkConnections(Chip addedChip) {
     LinkedList<MoveEffect> meList = new LinkedList<>();
-    for (ConnectedChip chip : chips) {
+    for (ConnectedChip chip : this.allChips) {
+      if (chip == addedChip) {
+        continue;
+      }
       for (ConnectedChip c: chip.connectedChips) {
-        if (!isConnectedChips(chip, c)) {
+        if (c!=addedChip && connectionBroken(chip, c, addedChip)) {
           //System.out.println("Unconnected: " + chip.toString() + c.toString());
           chip.removeConnection(c);
           c.removeConnection(chip);
@@ -217,14 +239,20 @@ public class Board {
   }
   
   //After a step-kind move, some connections may be broken and some may be added
-  private void updateConnections(int color) {
-    LinkedList<ConnectedChip> chips = color==BLACK?blackChips:whiteChips;
+  //Fix bug: both black chips and white chips can be affected
+  private void updateConnections(Chip addedChip) {
     LinkedList<MoveEffect> meList = new LinkedList<>();
-    for (ConnectedChip chip : chips) {
-      for (ConnectedChip otherChip: chips) {
+    for (ConnectedChip chip : this.allChips) {
+      if (chip == addedChip) {
+        continue;
+      }
+      for (ConnectedChip otherChip: this.allChips) {
+        if (otherChip == addedChip) {
+          continue;
+        }
         if (otherChip != chip) {
-          if (chip.connectedChips.contains(otherChip)) {
-            if (!isConnectedChips(chip, otherChip)) {
+          if (chip.isConnectedWith(otherChip)) {
+            if (connectionBroken(chip, otherChip, addedChip)) {
               chip.removeConnection(otherChip);
               otherChip.removeConnection(chip);
               meList.add(new MoveEffect(chip, otherChip, false));
@@ -267,6 +295,7 @@ public class Board {
     } else {
       chips.add(chip);
     }
+    allChips.add(chip);
     return true;
   }
   
@@ -280,7 +309,7 @@ public class Board {
       if (c.equals(chip)) {
         //System.out.println("find and remove");
         ite.remove();
-        //chips.remove(c);
+        allChips.remove(c);
       } else {
         c.removeConnectedChip(chip);
         //c.print();
