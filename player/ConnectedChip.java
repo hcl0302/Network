@@ -33,6 +33,11 @@ public class ConnectedChip extends Chip {
     return this.neighbourChip;
   }
   
+  //check whether it is connected with another chip
+  public boolean isConnectedWith(ConnectedChip c) {
+    return this.connectedChips.contains(c);
+  }
+  
   //connect this chip with another chip
   //return false if the chip will have two neighbours after connection
   public boolean addConnectedChip(ConnectedChip chip) {
