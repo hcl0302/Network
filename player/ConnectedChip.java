@@ -41,13 +41,14 @@ public class ConnectedChip extends Chip {
   //connect this chip with another chip
   //return false if the chip will have two neighbours after connection
   public boolean addConnectedChip(ConnectedChip chip) {
-    this.connectedChips.add(chip);
     if (Math.abs(chip.x-this.x) <= 1 && Math.abs(chip.y-this.y) <= 1) {
       if (this.neighbourChip != null) {
         return false;
       }
       this.neighbourChip = chip;
     }
+    //fix bug: add to the connectedChips list <at the end>
+    this.connectedChips.add(chip);
     return true;
   }
   

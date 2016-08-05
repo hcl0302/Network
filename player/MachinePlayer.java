@@ -17,7 +17,7 @@ public class MachinePlayer extends Player {
   
   public final int MACHINE_WIN = 9999;
   public final int HUMAN_WIN = -9999;
-  public final int SEARCHDEPTH = 5;
+  public final int SEARCHDEPTH = 6;
 
   // Creates a machine player with the given color.  Color is either 0 (black)
   // or 1 (white).  (White has the first move.)
@@ -40,9 +40,8 @@ public class MachinePlayer extends Player {
   public Move chooseMove() {
     List<Move> moves = this.currentBoard.movesGenerator(machineColor);
     ListIterator<Move> ite = moves.listIterator();
-    int bestScore = HUMAN_WIN;
+    int bestScore = Integer.MIN_VALUE;
     Move bestMove = null;
-    currentBoard.print();
     while (ite.hasNext()) {
       Move m = ite.next();
       if (!currentBoard.move(m, machineColor)) {
@@ -58,6 +57,8 @@ public class MachinePlayer extends Player {
       if (score > bestScore) {
         bestMove = m;
         bestScore = score;
+        System.out.println("best score: " + bestScore);
+        System.out.println(bestMove.toString());
       }
       currentBoard.retractMove(m);
       //currentBoard.print();
@@ -90,6 +91,7 @@ public class MachinePlayer extends Player {
   public boolean forceMove(Move m) {
     if (this.currentBoard.isValidMove(this.machineColor, m)) {
       this.currentBoard.move(m, this.machineColor);
+      currentBoard.print();
       return true;
     }
     return false;
@@ -100,8 +102,10 @@ public class MachinePlayer extends Player {
   //return difference of connected chip numbers if a draw
   public int boardEvaluation(Board board) {
     if (board.success(machineColor)) {
+      //System.out.println("machine can win");
       return MACHINE_WIN;
     } else if (board.success(humanColor)) {
+      //System.out.println("human can win");
       return HUMAN_WIN;
     } else {
       return board.connectedChipsNum(machineColor) 
@@ -112,7 +116,7 @@ public class MachinePlayer extends Player {
   //perform minimax tree search
   private int treeSearch(int color, Board board, Move move, int depth, int opponentBestScore) {
     int opponentColor = color==machineColor? humanColor:machineColor;
-    int bestScore = color==machineColor? HUMAN_WIN:MACHINE_WIN;
+    int bestScore = color==machineColor? Integer.MIN_VALUE:Integer.MAX_VALUE;
     List<Move> moves = board.movesGenerator(color);
     ListIterator<Move> ite = moves.listIterator();
     while (ite.hasNext()) {

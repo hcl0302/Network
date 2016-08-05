@@ -191,7 +191,8 @@ public class Board {
       int j = (c2.y-c1.y>0? 1:-1);
       int i = (c2.x-c1.x>0? 1:-1);
       int x = c1.x + i, y = c1.y + j;
-      while (x < c2.x) {
+      //fix bug: x < c2.x is a wrong condition
+      while (x != c2.x) {
         if (board[x][y] != EMPTY) {
           return false;
         }
@@ -212,8 +213,9 @@ public class Board {
     } else if (c3.x == c1.x || c3.x == c2.x) {
       return false;
     } else {
-      return (c3.y-c1.y)/(c3.x-c1.x) == (c2.y-c1.y)/(c2.x-c1.x) 
-          && (c3.y-c2.y)/(c3.x-c2.x) == (c1.y-c2.y)/(c1.x-c2.x);
+      //fix bug: when the slop is smaller than 1
+      return (c3.y-c1.y)*(c2.x-c1.x) ==  (c3.x-c1.x)*(c2.y-c1.y) //(c3.y-c1.y)/(c3.x-c1.x) == (c2.y-c1.y)/(c2.x-c1.x) 
+          && (c3.y-c1.y)*(c3.x-c2.x) == -(c3.y-c2.y)*(c3.x-c1.x);
     }
   }
   
@@ -227,7 +229,7 @@ public class Board {
       }
       for (ConnectedChip c: chip.connectedChips) {
         if (c!=addedChip && connectionBroken(chip, c, addedChip)) {
-          //System.out.println("Unconnected: " + chip.toString() + c.toString());
+          //System.out.println("Unconnected: " + chip.toString() + c.toString() +" because of " + addedChip.toString());
           chip.removeConnection(c);
           c.removeConnection(chip);
           meList.add(new MoveEffect(chip, c, false));
@@ -284,7 +286,7 @@ public class Board {
     LinkedList<ConnectedChip> chips = (chip.color == BLACK? this.blackChips:this.whiteChips);
     for  (ConnectedChip otherChip : chips) {
       if (isConnectedChips(chip, otherChip)) {
-        if (!chip.addConnectedChip(otherChip) || !otherChip.addConnectedChip(chip)) {
+        if (!otherChip.addConnectedChip(chip) || !chip.addConnectedChip(otherChip)) {
           //the chip will have two neighbours after connection
           return false;
         }
@@ -330,6 +332,7 @@ public class Board {
         if (formNetwork(c, network)) {
           return true;
         }
+        network.clear();
       }
     }
     return false;
@@ -371,20 +374,20 @@ public class Board {
       return false;
     }
     ListIterator<ConnectedChip> ite = network.listIterator();
-    int slope1, slope2;
+    double slope1, slope2;
     Chip c1 = ite.next();
     Chip c2 = ite.next();
     if (c2.x == c1.x) {
       slope1 = 100; //infinite
     } else {
-      slope1 = (c2.y - c1.y)/(c2.x - c1.x);
+      slope1 = (double)(c2.y - c1.y)/(double)(c2.x - c1.x);
     }
     while (ite.hasNext()) {
       Chip c3 = ite.next();
       if (c3.x == c2.x) {
         slope2 = 100; //infinite
       } else {
-        slope2 = (c3.y - c2.y)/(c3.x - c2.x);
+        slope2 = (double)(c3.y - c2.y)/(double)(c3.x - c2.x);
       }
       if (slope1 == slope2) {
         return false;
