@@ -9,8 +9,6 @@ package player;
  *  The moveKind field stores the type of move.  The x-coordinates index the
  *  horizontal direction (left to right) and the y-coordinates index the
  *  vertical direction (top to bottom).  x- and y-coordinates start at zero.
- *
- *  DO NOT CHANGE THIS FILE.
  */
 public class Move {
 
