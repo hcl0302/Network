@@ -17,7 +17,7 @@ public class MachinePlayer extends Player {
   
   public final int MACHINE_WIN = 9999;
   public final int HUMAN_WIN = -9999;
-  public final int SEARCHDEPTH = 5;
+  public final int SEARCHDEPTH = 4;
 
   /**
    * Creates a machine player with the given color.
